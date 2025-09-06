@@ -16,6 +16,7 @@ import {
   Heart,
   Share2
 } from 'lucide-react';
+import ShareModal from '../../components/common/ShareModal';
 
 const QuizList = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -23,6 +24,7 @@ const QuizList = () => {
   const [sortBy, setSortBy] = useState('popular');
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [shareModal, setShareModal] = useState({ isOpen: false, quiz: null });
 
   const categories = [
     { id: 'all', name: 'All', count: 156 },
@@ -453,7 +455,11 @@ const QuizList = () => {
                     >
                       Take Quiz
                     </Link>
-                    <button className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <button 
+                      onClick={() => setShareModal({ isOpen: true, quiz })}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      title="Share quiz"
+                    >
                       <Share2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -504,6 +510,14 @@ const QuizList = () => {
           )}
         </div>
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={shareModal.isOpen}
+        onClose={() => setShareModal({ isOpen: false, quiz: null })}
+        quiz={shareModal.quiz}
+        title="Share Quiz"
+      />
     </>
   );
 };
