@@ -281,7 +281,7 @@ router.put('/updatepassword', protect, [
 // @access  Private
 router.get('/logout', protect, async (req, res) => {
   res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
+    maxAge: 10 * 1000, // 10 seconds
     httpOnly: true,
   });
 

@@ -1,27 +1,31 @@
 const mongoose = require('mongoose');
 
+const answerSchema = new mongoose.Schema({
+  text: {
+    type: String,
+    required: [true, 'Answer text is required'],
+    trim: true,
+    maxlength: [200, 'Answer text cannot exceed 200 characters'],
+  },
+  correct: {
+    type: Boolean,
+    required: [true, 'Answer correctness must be specified'],
+  },
+});
+
 const questionSchema = new mongoose.Schema({
   question: {
     type: String,
     required: [true, 'Question text is required'],
     trim: true,
-    maxlength: [1000, 'Question cannot exceed 1000 characters'],
+    maxlength: [500, 'Question cannot exceed 500 characters'],
   },
   type: {
     type: String,
-    enum: ['multiple-choice', 'true-false', 'fill-in-the-blank', 'short-answer'],
+    enum: ['multiple-choice', 'true-false', 'fill-in-the-blank'],
     default: 'multiple-choice',
   },
-  options: [{
-    type: String,
-    trim: true,
-    maxlength: [500, 'Option cannot exceed 500 characters'],
-  }],
-  correctAnswer: {
-    type: String,
-    required: [true, 'Correct answer is required'],
-    trim: true,
-  },
+  answers: [answerSchema],
   explanation: {
     type: String,
     trim: true,
@@ -65,19 +69,15 @@ const quizSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Category is required'],
     enum: [
-      'General Knowledge',
-      'Science',
-      'Mathematics',
-      'History',
-      'Geography',
-      'Literature',
-      'Technology',
-      'Sports',
-      'Entertainment',
-      'Business',
-      'Health',
-      'Education',
-      'Other'
+      'general',
+      'science',
+      'history',
+      'math',
+      'language',
+      'technology',
+      'sports',
+      'entertainment',
+      'other'
     ],
   },
   difficulty: {
@@ -91,9 +91,9 @@ const quizSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  isPublic: {
+  isPublished: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   isPremium: {
     type: Boolean,
@@ -129,9 +129,9 @@ const quizSchema = new mongoose.Schema({
       type: Boolean,
       default: false,
     },
-    passingScore: {
+    passPercentage: {
       type: Number,
-      default: 60, // percentage
+      default: 70, // percentage
       min: 0,
       max: 100,
     },
@@ -184,7 +184,7 @@ const quizSchema = new mongoose.Schema({
 quizSchema.index({ author: 1 });
 quizSchema.index({ category: 1 });
 quizSchema.index({ difficulty: 1 });
-quizSchema.index({ isPublic: 1 });
+quizSchema.index({ isPublished: 1 });
 quizSchema.index({ isPremium: 1 });
 quizSchema.index({ featured: 1 });
 quizSchema.index({ 'stats.rating': -1 });

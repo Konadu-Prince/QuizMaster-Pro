@@ -5,8 +5,8 @@ const answerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
-  answer: {
-    type: String,
+  selectedAnswer: {
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
   isCorrect: {
@@ -37,29 +37,29 @@ const quizAttemptSchema = new mongoose.Schema({
   answers: [answerSchema],
   score: {
     type: Number,
-    required: true,
+    default: 0,
     min: 0,
   },
   percentage: {
     type: Number,
-    required: true,
+    default: 0,
     min: 0,
     max: 100,
   },
   timeSpent: {
     type: Number, // in seconds
-    required: true,
+    default: 0,
   },
   status: {
     type: String,
-    enum: ['in-progress', 'completed', 'abandoned', 'timeout'],
-    default: 'in-progress',
+    enum: ['in_progress', 'completed', 'abandoned', 'timeout'],
+    default: 'in_progress',
   },
-  startedAt: {
+  startTime: {
     type: Date,
     default: Date.now,
   },
-  completedAt: {
+  endTime: {
     type: Date,
     default: null,
   },
@@ -97,10 +97,10 @@ quizAttemptSchema.index({ percentage: -1 });
 
 // Virtual for duration
 quizAttemptSchema.virtual('duration').get(function() {
-  if (this.completedAt) {
-    return Math.round((this.completedAt - this.startedAt) / 1000);
+  if (this.endTime) {
+    return Math.round((this.endTime - this.startTime) / 1000);
   }
-  return Math.round((Date.now() - this.startedAt) / 1000);
+  return Math.round((Date.now() - this.startTime) / 1000);
 });
 
 // Pre-save middleware to calculate score and percentage
@@ -117,9 +117,9 @@ quizAttemptSchema.pre('save', function(next) {
     this.passed = this.percentage >= 60;
   }
   
-  // Set completedAt if status is completed
-  if (this.isModified('status') && this.status === 'completed' && !this.completedAt) {
-    this.completedAt = new Date();
+  // Set endTime if status is completed
+  if (this.isModified('status') && this.status === 'completed' && !this.endTime) {
+    this.endTime = new Date();
   }
   
   next();
@@ -136,11 +136,11 @@ quizAttemptSchema.methods.getDetailedResults = function() {
     timeSpent: this.timeSpent,
     status: this.status,
     passed: this.passed,
-    startedAt: this.startedAt,
-    completedAt: this.completedAt,
+    startTime: this.startTime,
+    endTime: this.endTime,
     answers: this.answers.map(answer => ({
       questionId: answer.questionId,
-      answer: answer.answer,
+      selectedAnswer: answer.selectedAnswer,
       isCorrect: answer.isCorrect,
       timeSpent: answer.timeSpent,
       points: answer.points,

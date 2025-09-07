@@ -15,6 +15,9 @@ const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
 const paymentRoutes = require('./routes/payments');
 const analyticsRoutes = require('./routes/analytics');
+const quizRoutes = require('./routes/quizzes');
+const quizAttemptRoutes = require('./routes/quizAttempts');
+const userRoutes = require('./routes/users');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -120,6 +123,9 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/quiz-attempts', quizAttemptRoutes);
+app.use('/api/users', userRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

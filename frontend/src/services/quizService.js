@@ -60,12 +60,12 @@ const quizService = {
   },
 
   getUserQuizzes: async (params = {}) => {
-    const response = await api.get('/quizzes/my', { params });
+    const response = await api.get('/quizzes/my-quizzes', { params });
     return response;
   },
 
-  getQuizAttempts: async (quizId) => {
-    const response = await api.get(`/quizzes/${quizId}/attempts`);
+  togglePublishQuiz: async (id) => {
+    const response = await api.patch(`/quizzes/${id}/publish`);
     return response;
   },
 };
