@@ -17,20 +17,20 @@ const Footer = () => {
 
   const footerLinks = {
     product: [
-      { name: 'Features', href: '/features' },
+      { name: 'Quizzes', href: '/quizzes' },
       { name: 'Pricing', href: '/pricing' },
-      { name: 'API', href: '/api' },
-      { name: 'Integrations', href: '/integrations' },
+      { name: 'Leaderboard', href: '/leaderboard' },
+      { name: 'Features', href: '/features' },
     ],
     company: [
       { name: 'About', href: '/about' },
+      { name: 'Contact', href: '/contact' },
       { name: 'Blog', href: '/blog' },
       { name: 'Careers', href: '/careers' },
-      { name: 'Contact', href: '/contact' },
     ],
     resources: [
-      { name: 'Documentation', href: '/docs' },
       { name: 'Help Center', href: '/help' },
+      { name: 'Documentation', href: '/docs' },
       { name: 'Community', href: '/community' },
       { name: 'Tutorials', href: '/tutorials' },
     ],
@@ -181,6 +181,10 @@ const Footer = () => {
             <span>© {currentYear} QuizMaster Pro. Made with</span>
             <Heart className="w-4 h-4 text-red-500 fill-current" />
             <span>for educators worldwide.</span>
+            <span className="ml-2">Developed by</span>
+            <span className="font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
+              conadux
+            </span>
           </div>
           
           <div className="flex space-x-6">

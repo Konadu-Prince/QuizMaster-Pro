@@ -1,27 +1,18 @@
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
-const { validationResult } = require('express-validator');
 
-// @desc    Get all quizzes
+// @desc    Get all published quizzes
 // @route   GET /api/quizzes
 // @access  Public
-const getQuizzes = async (req, res) => {
+const getQuizzes = async (req, res, next) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      category,
-      difficulty,
-      search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = req.query;
-
-    // Build filter object
-    const filter = { isPublished: true };
+    const { category, difficulty, search, page = 1, limit = 10 } = req.query;
+    
+    // Build filter
+    const filter = { isPublished: true, isPublic: true };
     
     if (category) {
-      filter.category = category;
+      filter.category = new RegExp(category, 'i');
     }
     
     if (difficulty) {
@@ -30,59 +21,40 @@ const getQuizzes = async (req, res) => {
     
     if (search) {
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { title: new RegExp(search, 'i') },
+        { description: new RegExp(search, 'i') },
         { tags: { $in: [new RegExp(search, 'i')] } }
       ];
     }
 
-    // Build sort object
-    const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Execute query
     const quizzes = await Quiz.find(filter)
-      .populate('author', 'username firstName lastName')
-      .select('-questions.answers.correct')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
+      .populate('createdBy', 'name')
+      .select('-questions.options.isCorrect') // Hide correct answers
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
 
     const total = await Quiz.countDocuments(filter);
 
-    res.status(200).json({
+    res.json({
       success: true,
-      data: {
-        quizzes,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(total / parseInt(limit)),
-          totalQuizzes: total,
-          hasNext: skip + quizzes.length < total,
-          hasPrev: parseInt(page) > 1
-        }
-      }
+      count: quizzes.length,
+      total,
+      data: quizzes
     });
   } catch (error) {
-    console.error('Get quizzes error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving quizzes'
-    });
+    next(error);
   }
 };
 
 // @desc    Get single quiz
 // @route   GET /api/quizzes/:id
 // @access  Public
-const getQuiz = async (req, res) => {
+const getQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findById(req.params.id)
-      .populate('author', 'username firstName lastName')
-      .select('-questions.answers.correct');
+      .populate('createdBy', 'name')
+      .select('-questions.options.isCorrect'); // Hide correct answers
 
     if (!quiz) {
       return res.status(404).json({
@@ -91,89 +63,57 @@ const getQuiz = async (req, res) => {
       });
     }
 
-    // Get quiz statistics
-    const stats = await QuizAttempt.aggregate([
-      { $match: { quiz: quiz._id } },
-      {
-        $group: {
-          _id: null,
-          totalAttempts: { $sum: 1 },
-          averageScore: { $avg: '$percentage' },
-          averageTime: { $avg: '$timeSpent' }
-        }
-      }
-    ]);
-
-    const quizStats = stats.length > 0 ? stats[0] : {
-      totalAttempts: 0,
-      averageScore: 0,
-      averageTime: 0
-    };
-
-    res.status(200).json({
+    res.json({
       success: true,
-      data: {
-        quiz,
-        stats: quizStats
-      }
+      data: quiz
     });
   } catch (error) {
-    console.error('Get quiz error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving quiz'
+    next(error);
+  }
+};
+
+// @desc    Get my quizzes
+// @route   GET /api/quizzes/my-quizzes
+// @access  Private
+const getMyQuizzes = async (req, res, next) => {
+  try {
+    const quizzes = await Quiz.find({ createdBy: req.user.id })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: quizzes.length,
+      data: quizzes
     });
+  } catch (error) {
+    next(error);
   }
 };
 
 // @desc    Create new quiz
 // @route   POST /api/quizzes
 // @access  Private
-const createQuiz = async (req, res) => {
+const createQuiz = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
+    // Add user to req.body
+    req.body.createdBy = req.user.id;
 
-    const quizData = {
-      ...req.body,
-      author: req.user._id
-    };
-
-    const quiz = await Quiz.create(quizData);
+    const quiz = await Quiz.create(req.body);
 
     res.status(201).json({
       success: true,
       data: quiz
     });
   } catch (error) {
-    console.error('Create quiz error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating quiz'
-    });
+    next(error);
   }
 };
 
 // @desc    Update quiz
 // @route   PUT /api/quizzes/:id
 // @access  Private
-const updateQuiz = async (req, res) => {
+const updateQuiz = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
     let quiz = await Quiz.findById(req.params.id);
 
     if (!quiz) {
@@ -183,9 +123,9 @@ const updateQuiz = async (req, res) => {
       });
     }
 
-    // Check if user owns the quiz or is admin
-    if (quiz.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
+    // Make sure user is quiz owner
+    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
         success: false,
         message: 'Not authorized to update this quiz'
       });
@@ -196,23 +136,19 @@ const updateQuiz = async (req, res) => {
       runValidators: true
     });
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: quiz
     });
   } catch (error) {
-    console.error('Update quiz error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating quiz'
-    });
+    next(error);
   }
 };
 
 // @desc    Delete quiz
 // @route   DELETE /api/quizzes/:id
 // @access  Private
-const deleteQuiz = async (req, res) => {
+const deleteQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
 
@@ -223,77 +159,32 @@ const deleteQuiz = async (req, res) => {
       });
     }
 
-    // Check if user owns the quiz or is admin
-    if (quiz.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
+    // Make sure user is quiz owner
+    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
         success: false,
         message: 'Not authorized to delete this quiz'
       });
     }
 
-    await Quiz.findByIdAndDelete(req.params.id);
+    // Delete related quiz attempts
+    await QuizAttempt.deleteMany({ quiz: req.params.id });
 
-    res.status(200).json({
+    await quiz.deleteOne();
+
+    res.json({
       success: true,
       message: 'Quiz deleted successfully'
     });
   } catch (error) {
-    console.error('Delete quiz error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting quiz'
-    });
+    next(error);
   }
 };
 
-// @desc    Get user's quizzes
-// @route   GET /api/quizzes/my-quizzes
-// @access  Private
-const getMyQuizzes = async (req, res) => {
-  try {
-    const { page = 1, limit = 10, status } = req.query;
-
-    const filter = { author: req.user._id };
-    if (status) {
-      filter.isPublished = status === 'published';
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const quizzes = await Quiz.find(filter)
-      .populate('author', 'username firstName lastName')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Quiz.countDocuments(filter);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        quizzes,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(total / parseInt(limit)),
-          totalQuizzes: total,
-          hasNext: skip + quizzes.length < total,
-          hasPrev: parseInt(page) > 1
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Get my quizzes error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving your quizzes'
-    });
-  }
-};
-
-// @desc    Publish/Unpublish quiz
+// @desc    Publish quiz
 // @route   PATCH /api/quizzes/:id/publish
 // @access  Private
-const togglePublishQuiz = async (req, res) => {
+const publishQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
 
@@ -304,28 +195,57 @@ const togglePublishQuiz = async (req, res) => {
       });
     }
 
-    // Check if user owns the quiz or is admin
-    if (quiz.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
+    // Make sure user is quiz owner
+    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
         success: false,
-        message: 'Not authorized to modify this quiz'
+        message: 'Not authorized to publish this quiz'
       });
     }
 
-    quiz.isPublished = !quiz.isPublished;
+    quiz.isPublished = true;
     await quiz.save();
 
-    res.status(200).json({
+    res.json({
       success: true,
-      data: quiz,
-      message: `Quiz ${quiz.isPublished ? 'published' : 'unpublished'} successfully`
+      data: quiz
     });
   } catch (error) {
-    console.error('Toggle publish quiz error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating quiz status'
+    next(error);
+  }
+};
+
+// @desc    Unpublish quiz
+// @route   PATCH /api/quizzes/:id/unpublish
+// @access  Private
+const unpublishQuiz = async (req, res, next) => {
+  try {
+    const quiz = await Quiz.findById(req.params.id);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+
+    // Make sure user is quiz owner
+    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to unpublish this quiz'
+      });
+    }
+
+    quiz.isPublished = false;
+    await quiz.save();
+
+    res.json({
+      success: true,
+      data: quiz
     });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -336,5 +256,6 @@ module.exports = {
   updateQuiz,
   deleteQuiz,
   getMyQuizzes,
-  togglePublishQuiz
+  publishQuiz,
+  unpublishQuiz
 };

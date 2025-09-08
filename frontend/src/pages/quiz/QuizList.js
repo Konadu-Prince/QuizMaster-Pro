@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
+import { useDispatch } from 'react-redux';
+import { fetchQuizzes } from '../../store/slices/quizSlice';
 import { 
   BookOpen, 
   Users, 
   Clock, 
   Star, 
   Search, 
-  Filter,
   TrendingUp,
   Award,
-  Calendar,
   Eye,
   Heart,
   Share2
@@ -19,12 +19,19 @@ import {
 import ShareModal from '../../components/common/ShareModal';
 
 const QuizList = () => {
+  const dispatch = useDispatch();
+  // const { quizzes, isLoading, error } = useSelector((state) => state.quiz);
+  
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('popular');
-  const [quizzes, setQuizzes] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [shareModal, setShareModal] = useState({ isOpen: false, quiz: null });
+  const [localQuizzes, setLocalQuizzes] = useState([]);
+  const [localLoading, setLocalLoading] = useState(true);
+
+  useEffect(() => {
+    dispatch(fetchQuizzes());
+  }, [dispatch]);
 
   const categories = [
     { id: 'all', name: 'All', count: 156 },
@@ -152,12 +159,12 @@ const QuizList = () => {
   useEffect(() => {
     // Simulate loading
     setTimeout(() => {
-      setQuizzes(mockQuizzes);
-      setLoading(false);
+      setLocalQuizzes(mockQuizzes);
+      setLocalLoading(false);
     }, 1000);
-  }, []);
+  }, [mockQuizzes]);
 
-  const filteredQuizzes = quizzes.filter(quiz => {
+  const filteredQuizzes = localQuizzes.filter(quiz => {
     const matchesCategory = selectedCategory === 'All' || quiz.category.toLowerCase() === selectedCategory.toLowerCase();
     const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          quiz.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,12 +189,12 @@ const QuizList = () => {
   });
 
   const toggleBookmark = (quizId) => {
-    setQuizzes(quizzes.map(quiz => 
+    setLocalQuizzes(localQuizzes.map(quiz => 
       quiz.id === quizId ? { ...quiz, isBookmarked: !quiz.isBookmarked } : quiz
     ));
   };
 
-  if (loading) {
+  if (localLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -339,7 +346,7 @@ const QuizList = () => {
             className="mb-6"
           >
             <p className="text-gray-600 dark:text-gray-400">
-              Showing {sortedQuizzes.length} of {quizzes.length} quizzes
+              Showing {sortedQuizzes.length} of {localQuizzes.length} quizzes
             </p>
           </motion.div>
 

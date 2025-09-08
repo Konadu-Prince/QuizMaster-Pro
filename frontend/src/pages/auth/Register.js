@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { register, clearError } from '../../store/slices/authSlice';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -15,9 +16,9 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const { register } = useAuth();
+  const dispatch = useDispatch();
+  const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -27,6 +28,26 @@ const Register = () => {
     });
   };
 
+  // Clear error on component mount
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // Navigate on successful registration
+  useEffect(() => {
+    if (isAuthenticated) {
+      toast.success('Account created successfully!');
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -35,21 +56,7 @@ const Register = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const result = await register(formData);
-      if (result.success) {
-        toast.success('Account created successfully!');
-        navigate('/dashboard');
-      } else {
-        toast.error(result.error);
-      }
-    } catch (error) {
-      toast.error('An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
-    }
+    dispatch(register(formData));
   };
 
   return (

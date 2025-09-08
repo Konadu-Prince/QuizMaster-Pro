@@ -1,63 +1,116 @@
-import axios from 'axios';
+/**
+ * User Service - Handle user-related API calls
+ */
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+import api from './api';
 
 const userService = {
-  getUserProfile: async () => {
-    const response = await api.get('/users/profile');
-    return response;
+  // Get current user profile
+  getProfile: async () => {
+    try {
+      const response = await api.get('/users/profile');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  updateUserProfile: async (userData) => {
-    const response = await api.put('/users/profile', userData);
-    return response;
+  // Update user profile
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/users/profile', profileData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  getUserDashboard: async (params = {}) => {
-    const response = await api.get('/users/dashboard', { params });
-    return response;
+  // Change password
+  changePassword: async (passwordData) => {
+    try {
+      const response = await api.put('/users/change-password', passwordData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  getUserAttempts: async (params = {}) => {
-    const response = await api.get('/users/attempts', { params });
-    return response;
+  // Update notification preferences
+  updateNotifications: async (notificationSettings) => {
+    try {
+      const response = await api.put('/users/notifications', notificationSettings);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  getUserQuizzes: async (params = {}) => {
-    const response = await api.get('/users/quizzes', { params });
-    return response;
+  // Update privacy settings
+  updatePrivacy: async (privacySettings) => {
+    try {
+      const response = await api.put('/users/privacy', privacySettings);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  deleteUserAccount: async (password) => {
-    const response = await api.delete('/users/account', { data: { password } });
-    return response;
+  // Update appearance settings
+  updateAppearance: async (appearanceSettings) => {
+    try {
+      const response = await api.put('/users/appearance', appearanceSettings);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  getPublicUserProfile: async (username) => {
-    const response = await api.get(`/users/${username}`);
-    return response;
+  // Delete user account
+  deleteAccount: async (password) => {
+    try {
+      const response = await api.delete('/users/account', { data: { password } });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
+
+  // Upload profile picture
+  uploadAvatar: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const response = await api.post('/users/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get user statistics
+  getUserStats: async () => {
+    try {
+      const response = await api.get('/users/stats');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get user activity
+  getUserActivity: async (page = 1, limit = 10) => {
+    try {
+      const response = await api.get(`/users/activity?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
 
 export default userService;

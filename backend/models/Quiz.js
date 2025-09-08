@@ -1,202 +1,148 @@
 const mongoose = require('mongoose');
 
-const answerSchema = new mongoose.Schema({
-  text: {
-    type: String,
-    required: [true, 'Answer text is required'],
-    trim: true,
-    maxlength: [200, 'Answer text cannot exceed 200 characters'],
-  },
-  correct: {
-    type: Boolean,
-    required: [true, 'Answer correctness must be specified'],
-  },
-});
-
 const questionSchema = new mongoose.Schema({
   question: {
     type: String,
-    required: [true, 'Question text is required'],
-    trim: true,
-    maxlength: [500, 'Question cannot exceed 500 characters'],
+    required: [true, 'Please add a question'],
+    trim: true
   },
   type: {
     type: String,
-    enum: ['multiple-choice', 'true-false', 'fill-in-the-blank'],
-    default: 'multiple-choice',
+    enum: ['multiple-choice', 'true-false', 'fill-in-blank', 'essay'],
+    default: 'multiple-choice'
   },
-  answers: [answerSchema],
+  options: [{
+    text: {
+      type: String,
+      required: true
+    },
+    isCorrect: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  correctAnswer: {
+    type: String,
+    required: function() {
+      return this.type === 'fill-in-blank';
+    }
+  },
   explanation: {
     type: String,
-    trim: true,
-    maxlength: [1000, 'Explanation cannot exceed 1000 characters'],
+    trim: true
   },
   points: {
     type: Number,
     default: 1,
-    min: [1, 'Points must be at least 1'],
-    max: [10, 'Points cannot exceed 10'],
+    min: 1
   },
   timeLimit: {
     type: Number, // in seconds
-    default: 60,
-    min: [10, 'Time limit must be at least 10 seconds'],
-    max: [600, 'Time limit cannot exceed 10 minutes'],
-  },
-  image: {
-    type: String, // Cloudinary URL
-    default: null,
-  },
-  order: {
-    type: Number,
-    required: true,
-  },
+    default: 60
+  }
 });
 
 const quizSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: [true, 'Quiz title is required'],
+    required: [true, 'Please add a title'],
     trim: true,
-    maxlength: [200, 'Title cannot exceed 200 characters'],
+    maxlength: [100, 'Title cannot be more than 100 characters']
   },
   description: {
     type: String,
     trim: true,
-    maxlength: [1000, 'Description cannot exceed 1000 characters'],
+    maxlength: [500, 'Description cannot be more than 500 characters']
   },
   category: {
     type: String,
-    required: [true, 'Category is required'],
-    enum: [
-      'general',
-      'science',
-      'history',
-      'math',
-      'language',
-      'technology',
-      'sports',
-      'entertainment',
-      'other'
-    ],
-  },
-  difficulty: {
-    type: String,
-    enum: ['easy', 'medium', 'hard'],
-    default: 'medium',
-  },
-  questions: [questionSchema],
-  author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  isPublished: {
-    type: Boolean,
-    default: false,
-  },
-  isPremium: {
-    type: Boolean,
-    default: false,
+    required: [true, 'Please add a category'],
+    trim: true
   },
   tags: [{
     type: String,
-    trim: true,
-    lowercase: true,
+    trim: true
   }],
+  questions: [questionSchema],
+  createdBy: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  isPublished: {
+    type: Boolean,
+    default: false
+  },
+  isPublic: {
+    type: Boolean,
+    default: true
+  },
   settings: {
     timeLimit: {
-      type: Number, // Total time limit in minutes
-      default: null,
-    },
-    showCorrectAnswers: {
-      type: Boolean,
-      default: true,
-    },
-    showExplanations: {
-      type: Boolean,
-      default: true,
+      type: Number, // in minutes
+      default: 30
     },
     allowRetake: {
       type: Boolean,
-      default: true,
+      default: true
+    },
+    showResults: {
+      type: Boolean,
+      default: true
     },
     randomizeQuestions: {
       type: Boolean,
-      default: false,
+      default: false
     },
     randomizeOptions: {
       type: Boolean,
-      default: false,
+      default: false
     },
     passPercentage: {
       type: Number,
-      default: 70, // percentage
+      default: 70,
       min: 0,
-      max: 100,
-    },
+      max: 100
+    }
   },
   stats: {
     totalAttempts: {
       type: Number,
-      default: 0,
+      default: 0
     },
     averageScore: {
       type: Number,
-      default: 0,
-    },
-    averageTime: {
-      type: Number, // in seconds
-      default: 0,
+      default: 0
     },
     completionRate: {
-      type: Number, // percentage
-      default: 0,
-    },
-    rating: {
       type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
+      default: 0
     },
-    totalRatings: {
+    averageTime: {
       type: Number,
-      default: 0,
-    },
+      default: 0
+    }
   },
-  featured: {
-    type: Boolean,
-    default: false,
+  difficulty: {
+    type: String,
+    enum: ['easy', 'medium', 'hard'],
+    default: 'medium'
   },
-  featuredUntil: {
-    type: Date,
-    default: null,
-  },
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
+  language: {
+    type: String,
+    default: 'en'
+  }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
-// Indexes for better performance
-quizSchema.index({ author: 1 });
+// Create indexes
+quizSchema.index({ createdBy: 1 });
 quizSchema.index({ category: 1 });
-quizSchema.index({ difficulty: 1 });
-quizSchema.index({ isPublished: 1 });
-quizSchema.index({ isPremium: 1 });
-quizSchema.index({ featured: 1 });
-quizSchema.index({ 'stats.rating': -1 });
+quizSchema.index({ isPublished: 1, isPublic: 1 });
+quizSchema.index({ tags: 1 });
 quizSchema.index({ 'stats.totalAttempts': -1 });
 quizSchema.index({ createdAt: -1 });
-
-// Text search index
-quizSchema.index({
-  title: 'text',
-  description: 'text',
-  tags: 'text',
-});
 
 // Virtual for total questions
 quizSchema.virtual('totalQuestions').get(function() {
@@ -208,55 +154,8 @@ quizSchema.virtual('totalPoints').get(function() {
   return this.questions.reduce((total, question) => total + question.points, 0);
 });
 
-// Virtual for estimated time
-quizSchema.virtual('estimatedTime').get(function() {
-  if (this.settings.timeLimit) {
-    return this.settings.timeLimit;
-  }
-  return Math.ceil(this.questions.reduce((total, question) => total + question.timeLimit, 0) / 60);
-});
-
-// Pre-save middleware to update stats
-quizSchema.pre('save', function(next) {
-  if (this.isModified('questions')) {
-    // Update question order if not set
-    this.questions.forEach((question, index) => {
-      if (!question.order) {
-        question.order = index + 1;
-      }
-    });
-  }
-  next();
-});
-
-// Method to calculate average score
-quizSchema.methods.updateStats = async function() {
-  const QuizAttempt = mongoose.model('QuizAttempt');
-  
-  const stats = await QuizAttempt.aggregate([
-    { $match: { quiz: this._id } },
-    {
-      $group: {
-        _id: null,
-        totalAttempts: { $sum: 1 },
-        averageScore: { $avg: '$score' },
-        averageTime: { $avg: '$timeSpent' },
-        completedAttempts: {
-          $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-        }
-      }
-    }
-  ]);
-
-  if (stats.length > 0) {
-    const stat = stats[0];
-    this.stats.totalAttempts = stat.totalAttempts;
-    this.stats.averageScore = Math.round(stat.averageScore || 0);
-    this.stats.averageTime = Math.round(stat.averageTime || 0);
-    this.stats.completionRate = Math.round((stat.completedAttempts / stat.totalAttempts) * 100);
-  }
-
-  return this.save();
-};
+// Ensure virtual fields are serialized
+quizSchema.set('toJSON', { virtuals: true });
+quizSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Quiz', quizSchema);

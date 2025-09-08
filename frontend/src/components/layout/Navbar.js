@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNotifications } from '../notifications/NotificationProvider';
+import { useAnalytics } from '../analytics/AnalyticsProvider';
 import { 
   Menu, 
   X, 
@@ -12,7 +14,11 @@ import {
   Settings,
   Trophy,
   BookOpen,
-  Plus
+  Plus,
+  HelpCircle,
+  CreditCard,
+  BarChart3,
+  Bell
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -20,13 +26,21 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { unreadCount, setIsOpen: setNotificationOpen } = useNotifications();
+  const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
+    trackEvent('user_logout', { userId: user?.id });
     await logout();
     navigate('/');
     setIsProfileOpen(false);
+  };
+
+  const handleNotificationClick = () => {
+    trackEvent('notifications_opened');
+    setNotificationOpen(true);
   };
 
   const isActive = (path) => {
@@ -36,6 +50,8 @@ const Navbar = () => {
   const navItems = [
     { path: '/quizzes', label: 'Quizzes', icon: BookOpen },
     { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { path: '/pricing', label: 'Pricing', icon: CreditCard },
+    { path: '/help', label: 'Help', icon: HelpCircle },
   ];
 
   return (
@@ -83,6 +99,23 @@ const Navbar = () => {
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
+            {/* Notifications */}
+            {isAuthenticated && (
+              <div className="relative">
+                <button
+                  onClick={handleNotificationClick}
+                  className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors relative"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+
             {isAuthenticated ? (
               <div className="relative">
                 {/* Create Quiz Button */}
@@ -111,22 +144,38 @@ const Navbar = () => {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50">
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50">
                       <Link
                         to="/dashboard"
                         className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                         onClick={() => setIsProfileOpen(false)}
                       >
-                        <User className="w-4 h-4" />
+                        <BarChart3 className="w-4 h-4" />
                         <span>Dashboard</span>
+                      </Link>
+                      <Link
+                        to="/my-quizzes"
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        <span>My Quizzes</span>
                       </Link>
                       <Link
                         to="/profile"
                         className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                         onClick={() => setIsProfileOpen(false)}
                       >
-                        <Settings className="w-4 h-4" />
+                        <User className="w-4 h-4" />
                         <span>Profile</span>
+                      </Link>
+                      <Link
+                        to="/settings"
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
                       </Link>
                       <hr className="my-1 border-gray-200 dark:border-gray-600" />
                       <button
@@ -205,8 +254,24 @@ const Navbar = () => {
                     className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => setIsOpen(false)}
                   >
-                    <User className="w-5 h-5" />
+                    <BarChart3 className="w-5 h-5" />
                     <span>Dashboard</span>
+                  </Link>
+                  <Link
+                    to="/my-quizzes"
+                    className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    <span>My Quizzes</span>
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span>Settings</span>
                   </Link>
                 </>
               )}

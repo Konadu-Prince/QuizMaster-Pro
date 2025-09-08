@@ -2,186 +2,100 @@ const mongoose = require('mongoose');
 
 const answerSchema = new mongoose.Schema({
   questionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
+    type: mongoose.Schema.ObjectId,
+    required: true
   },
   selectedAnswer: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
+    type: String,
+    required: true
   },
   isCorrect: {
     type: Boolean,
-    required: true,
+    default: false
+  },
+  pointsEarned: {
+    type: Number,
+    default: 0
   },
   timeSpent: {
     type: Number, // in seconds
-    required: true,
-  },
-  points: {
-    type: Number,
-    default: 0,
-  },
+    default: 0
+  }
 });
 
 const quizAttemptSchema = new mongoose.Schema({
   quiz: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.ObjectId,
     ref: 'Quiz',
-    required: true,
+    required: true
   },
   user: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.ObjectId,
     ref: 'User',
-    required: true,
+    required: true
   },
   answers: [answerSchema],
   score: {
     type: Number,
-    default: 0,
-    min: 0,
+    default: 0
   },
   percentage: {
     type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
+    default: 0
   },
   timeSpent: {
     type: Number, // in seconds
-    default: 0,
+    default: 0
   },
   status: {
     type: String,
-    enum: ['in_progress', 'completed', 'abandoned', 'timeout'],
-    default: 'in_progress',
+    enum: ['in_progress', 'completed', 'abandoned'],
+    default: 'in_progress'
   },
   startTime: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
   endTime: {
-    type: Date,
-    default: null,
+    type: Date
   },
-  passed: {
+  isPassed: {
     type: Boolean,
-    default: false,
+    default: false
   },
   feedback: {
     type: String,
-    trim: true,
-    maxlength: [1000, 'Feedback cannot exceed 1000 characters'],
-  },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    default: null,
-  },
-  review: {
-    type: String,
-    trim: true,
-    maxlength: [500, 'Review cannot exceed 500 characters'],
-  },
+    trim: true
+  }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
-// Indexes for better performance
+// Create indexes
 quizAttemptSchema.index({ quiz: 1, user: 1 });
 quizAttemptSchema.index({ user: 1, createdAt: -1 });
 quizAttemptSchema.index({ quiz: 1, createdAt: -1 });
 quizAttemptSchema.index({ status: 1 });
 quizAttemptSchema.index({ score: -1 });
-quizAttemptSchema.index({ percentage: -1 });
 
-// Virtual for duration
-quizAttemptSchema.virtual('duration').get(function() {
-  if (this.endTime) {
-    return Math.round((this.endTime - this.startTime) / 1000);
-  }
-  return Math.round((Date.now() - this.startTime) / 1000);
-});
-
-// Pre-save middleware to calculate score and percentage
+// Calculate score and percentage before saving
 quizAttemptSchema.pre('save', function(next) {
-  if (this.isModified('answers') && this.answers.length > 0) {
-    // Calculate score
-    this.score = this.answers.reduce((total, answer) => total + (answer.isCorrect ? answer.points : 0), 0);
+  if (this.answers && this.answers.length > 0) {
+    this.score = this.answers.reduce((total, answer) => total + answer.pointsEarned, 0);
     
-    // Calculate percentage
-    const totalPoints = this.answers.reduce((total, answer) => total + answer.points, 0);
-    this.percentage = totalPoints > 0 ? Math.round((this.score / totalPoints) * 100) : 0;
-    
-    // Check if passed (assuming 60% is passing)
-    this.passed = this.percentage >= 60;
+    // Get total possible points from the quiz
+    if (this.quiz && this.quiz.questions) {
+      const totalPoints = this.quiz.questions.reduce((total, question) => total + question.points, 0);
+      this.percentage = totalPoints > 0 ? Math.round((this.score / totalPoints) * 100) : 0;
+    }
   }
   
-  // Set endTime if status is completed
-  if (this.isModified('status') && this.status === 'completed' && !this.endTime) {
+  // Set end time if completed
+  if (this.status === 'completed' && !this.endTime) {
     this.endTime = new Date();
   }
   
   next();
 });
-
-// Method to get detailed results
-quizAttemptSchema.methods.getDetailedResults = function() {
-  const results = {
-    attemptId: this._id,
-    quiz: this.quiz,
-    user: this.user,
-    score: this.score,
-    percentage: this.percentage,
-    timeSpent: this.timeSpent,
-    status: this.status,
-    passed: this.passed,
-    startTime: this.startTime,
-    endTime: this.endTime,
-    answers: this.answers.map(answer => ({
-      questionId: answer.questionId,
-      selectedAnswer: answer.selectedAnswer,
-      isCorrect: answer.isCorrect,
-      timeSpent: answer.timeSpent,
-      points: answer.points,
-    })),
-    feedback: this.feedback,
-    rating: this.rating,
-    review: this.review,
-  };
-  
-  return results;
-};
-
-// Static method to get user's quiz history
-quizAttemptSchema.statics.getUserHistory = function(userId, limit = 10, skip = 0) {
-  return this.find({ user: userId })
-    .populate('quiz', 'title category difficulty')
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .skip(skip);
-};
-
-// Static method to get quiz statistics
-quizAttemptSchema.statics.getQuizStats = function(quizId) {
-  return this.aggregate([
-    { $match: { quiz: mongoose.Types.ObjectId(quizId) } },
-    {
-      $group: {
-        _id: null,
-        totalAttempts: { $sum: 1 },
-        averageScore: { $avg: '$score' },
-        averagePercentage: { $avg: '$percentage' },
-        averageTimeSpent: { $avg: '$timeSpent' },
-        passRate: {
-          $avg: { $cond: ['$passed', 1, 0] }
-        },
-        completionRate: {
-          $avg: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-        }
-      }
-    }
-  ]);
-};
 
 module.exports = mongoose.model('QuizAttempt', quizAttemptSchema);

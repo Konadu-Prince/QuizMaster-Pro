@@ -60,7 +60,7 @@ const quizService = {
   },
 
   getUserQuizzes: async (params = {}) => {
-    const response = await api.get('/quizzes/my-quizzes', { params });
+    const response = await api.get('/user-quizzes/my-quizzes', { params });
     return response;
   },
 

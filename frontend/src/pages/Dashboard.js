@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector, useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { fetchUserQuizzes } from '../store/slices/quizSlice';
+import Breadcrumb from '../components/common/Breadcrumb';
 import { 
   BookOpen, 
   Trophy, 
@@ -9,24 +12,38 @@ import {
   Plus,
   BarChart3,
   Clock,
-  Star
+  Eye,
+  Edit
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { userQuizzes, isLoading } = useSelector((state) => state.quiz);
+
+  useEffect(() => {
+    dispatch(fetchUserQuizzes());
+  }, [dispatch]);
+
+  // Use real data from API
+  const displayQuizzes = userQuizzes;
+
+  // Calculate stats from user data
+  const totalQuizzes = displayQuizzes.length;
+  const publishedQuizzes = displayQuizzes.filter(quiz => quiz.isPublished).length;
+  const totalAttempts = displayQuizzes.reduce((sum, quiz) => sum + (quiz.stats?.totalAttempts || 0), 0);
+  const averageScore = displayQuizzes.length > 0 
+    ? Math.round(displayQuizzes.reduce((sum, quiz) => sum + (quiz.stats?.averageScore || 0), 0) / displayQuizzes.length)
+    : 0;
 
   const stats = [
-    { name: 'Quizzes Created', value: '12', icon: BookOpen, change: '+2 this month' },
-    { name: 'Total Attempts', value: '1,234', icon: Users, change: '+12% from last month' },
-    { name: 'Average Score', value: '87%', icon: TrendingUp, change: '+5% from last month' },
-    { name: 'Leaderboard Rank', value: '#3', icon: Trophy, change: 'Up 2 positions' },
+    { name: 'Quizzes Created', value: totalQuizzes.toString(), icon: BookOpen, change: `${publishedQuizzes} published` },
+    { name: 'Total Attempts', value: totalAttempts.toString(), icon: Users, change: 'Across all quizzes' },
+    { name: 'Average Score', value: `${averageScore}%`, icon: TrendingUp, change: 'Quiz performance' },
+    { name: 'Published Quizzes', value: publishedQuizzes.toString(), icon: Trophy, change: 'Public quizzes' },
   ];
 
-  const recentQuizzes = [
-    { id: 1, title: 'JavaScript Fundamentals', attempts: 45, avgScore: 92, lastUpdated: '2 hours ago' },
-    { id: 2, title: 'React Hooks Quiz', attempts: 32, avgScore: 88, lastUpdated: '1 day ago' },
-    { id: 3, title: 'CSS Grid Layout', attempts: 28, avgScore: 85, lastUpdated: '3 days ago' },
-  ];
+  const recentQuizzes = displayQuizzes.slice(0, 5);
 
   const recentActivity = [
     { type: 'quiz_created', message: 'Created "Advanced JavaScript" quiz', time: '2 hours ago' },
@@ -42,6 +59,8 @@ const Dashboard = () => {
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Breadcrumb />
+          
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -95,39 +114,71 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {recentQuizzes.map((quiz) => (
-                    <div key={quiz.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                            {quiz.title}
-                          </h3>
-                          <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                            <span className="flex items-center">
-                              <Users className="h-4 w-4 mr-1" />
-                              {quiz.attempts} attempts
-                            </span>
-                            <span className="flex items-center">
-                              <BarChart3 className="h-4 w-4 mr-1" />
-                              {quiz.avgScore}% avg
-                            </span>
-                            <span className="flex items-center">
-                              <Clock className="h-4 w-4 mr-1" />
-                              {quiz.lastUpdated}
-                            </span>
+                  {isLoading ? (
+                    <div className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                      Loading quizzes...
+                    </div>
+                  ) : recentQuizzes.length > 0 ? (
+                    recentQuizzes.map((quiz) => (
+                      <div key={quiz._id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                              {quiz.title}
+                            </h3>
+                            <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                              <span className="flex items-center">
+                                <Users className="h-4 w-4 mr-1" />
+                                {quiz.stats?.totalAttempts || 0} attempts
+                              </span>
+                              <span className="flex items-center">
+                                <BarChart3 className="h-4 w-4 mr-1" />
+                                {quiz.stats?.averageScore || 0}% avg
+                              </span>
+                              <span className="flex items-center">
+                                <Clock className="h-4 w-4 mr-1" />
+                                {new Date(quiz.updatedAt).toLocaleDateString()}
+                              </span>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                quiz.isPublished 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              }`}>
+                                {quiz.isPublished ? 'Published' : 'Draft'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Link
+                              to={`/quiz/${quiz._id}`}
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                            <Link
+                              to={`/quiz/edit/${quiz._id}`}
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Link>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <button className="text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                            View
-                          </button>
-                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            Edit
-                          </button>
-                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                      <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                      <p className="text-lg font-medium mb-2">No quizzes yet</p>
+                      <p className="text-sm mb-4">Create your first quiz to get started!</p>
+                      <Link
+                        to="/quiz/create"
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Quiz
+                      </Link>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>

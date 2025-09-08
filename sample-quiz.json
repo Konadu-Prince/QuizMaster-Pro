@@ -1,0 +1,69 @@
+{
+  "title": "JavaScript Fundamentals Quiz",
+  "description": "Test your knowledge of JavaScript basics including variables, functions, and objects.",
+  "category": "programming",
+  "difficulty": "intermediate",
+  "questions": [
+    {
+      "question": "What is the correct way to declare a variable in JavaScript?",
+      "type": "multiple-choice",
+      "answers": [
+        {"text": "var myVar = 5;", "correct": true},
+        {"text": "variable myVar = 5;", "correct": false},
+        {"text": "v myVar = 5;", "correct": false},
+        {"text": "declare myVar = 5;", "correct": false}
+      ],
+      "points": 1,
+      "timeLimit": 60
+    },
+    {
+      "question": "Which of the following is NOT a JavaScript data type?",
+      "type": "multiple-choice",
+      "answers": [
+        {"text": "String", "correct": false},
+        {"text": "Boolean", "correct": false},
+        {"text": "Float", "correct": true},
+        {"text": "Number", "correct": false}
+      ],
+      "points": 1,
+      "timeLimit": 60
+    },
+    {
+      "question": "What does the '===' operator do in JavaScript?",
+      "type": "multiple-choice",
+      "answers": [
+        {"text": "Assigns a value", "correct": false},
+        {"text": "Compares values and types", "correct": true},
+        {"text": "Compares only values", "correct": false},
+        {"text": "Creates a function", "correct": false}
+      ],
+      "points": 1,
+      "timeLimit": 60
+    },
+    {
+      "question": "Which method is used to add an element to the end of an array?",
+      "type": "multiple-choice",
+      "answers": [
+        {"text": "push()", "correct": true},
+        {"text": "add()", "correct": false},
+        {"text": "append()", "correct": false},
+        {"text": "insert()", "correct": false}
+      ],
+      "points": 1,
+      "timeLimit": 60
+    },
+    {
+      "question": "What is the result of typeof null in JavaScript?",
+      "type": "multiple-choice",
+      "answers": [
+        {"text": "null", "correct": false},
+        {"text": "undefined", "correct": false},
+        {"text": "object", "correct": true},
+        {"text": "string", "correct": false}
+      ],
+      "points": 1,
+      "timeLimit": 60
+    }
+  ]
+}
+

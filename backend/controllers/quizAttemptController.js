@@ -1,99 +1,64 @@
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
-const { validationResult } = require('express-validator');
+const User = require('../models/User');
 
-// @desc    Start quiz attempt
+// @desc    Start a quiz attempt
 // @route   POST /api/quiz-attempts/start
 // @access  Private
-const startQuizAttempt = async (req, res) => {
+const startQuiz = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
     const { quizId } = req.body;
 
     // Check if quiz exists and is published
     const quiz = await Quiz.findById(quizId);
-    if (!quiz) {
+    if (!quiz || !quiz.isPublished) {
       return res.status(404).json({
         success: false,
-        message: 'Quiz not found'
+        message: 'Quiz not found or not published'
       });
     }
 
-    if (!quiz.isPublished) {
-      return res.status(403).json({
-        success: false,
-        message: 'Quiz is not available'
-      });
-    }
-
-    // Check if user already has an active attempt
+    // Check if user already has an in-progress attempt
     const existingAttempt = await QuizAttempt.findOne({
-      user: req.user._id,
       quiz: quizId,
+      user: req.user.id,
       status: 'in_progress'
     });
 
     if (existingAttempt) {
-      return res.status(400).json({
-        success: false,
-        message: 'You already have an active attempt for this quiz',
+      return res.json({
+        success: true,
         data: existingAttempt
       });
     }
 
-    // Create new quiz attempt
+    // Create new attempt
     const attempt = await QuizAttempt.create({
-      user: req.user._id,
       quiz: quizId,
-      status: 'in_progress',
-      startTime: new Date(),
-      answers: []
+      user: req.user.id,
+      startTime: new Date()
     });
 
-    // Populate quiz data for the attempt
-    await attempt.populate('quiz', 'title description timeLimit questions');
+    // Populate quiz data
+    await attempt.populate('quiz', 'title description questions settings');
 
     res.status(201).json({
       success: true,
       data: attempt
     });
   } catch (error) {
-    console.error('Start quiz attempt error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error starting quiz attempt'
-    });
+    next(error);
   }
 };
 
-// @desc    Submit answer for a question
+// @desc    Submit an answer
 // @route   POST /api/quiz-attempts/:id/answer
 // @access  Private
-const submitAnswer = async (req, res) => {
+const submitAnswer = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
     const { questionId, selectedAnswer, timeSpent } = req.body;
 
-    // Find the attempt
-    const attempt = await QuizAttempt.findById(req.params.id)
-      .populate('quiz', 'questions');
-
+    const attempt = await QuizAttempt.findById(req.params.id);
     if (!attempt) {
       return res.status(404).json({
         success: false,
@@ -102,10 +67,10 @@ const submitAnswer = async (req, res) => {
     }
 
     // Check if user owns this attempt
-    if (attempt.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
+    if (attempt.user.toString() !== req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Not authorized to modify this attempt'
+        message: 'Not authorized'
       });
     }
 
@@ -113,12 +78,14 @@ const submitAnswer = async (req, res) => {
     if (attempt.status !== 'in_progress') {
       return res.status(400).json({
         success: false,
-        message: 'Quiz attempt is no longer active'
+        message: 'Quiz attempt is not in progress'
       });
     }
 
-    // Find the question
-    const question = attempt.quiz.questions.find(q => q._id.toString() === questionId);
+    // Get quiz to check correct answer
+    const quiz = await Quiz.findById(attempt.quiz);
+    const question = quiz.questions.id(questionId);
+    
     if (!question) {
       return res.status(404).json({
         success: false,
@@ -126,55 +93,58 @@ const submitAnswer = async (req, res) => {
       });
     }
 
-    // Check if answer already exists
-    const existingAnswerIndex = attempt.answers.findIndex(
-      a => a.questionId.toString() === questionId
+    // Check if answer is correct
+    let isCorrect = false;
+    let pointsEarned = 0;
+
+    if (question.type === 'multiple-choice') {
+      const correctOption = question.options.find(opt => opt.isCorrect);
+      isCorrect = correctOption && correctOption.text === selectedAnswer;
+    } else if (question.type === 'true-false') {
+      isCorrect = question.correctAnswer === selectedAnswer;
+    } else if (question.type === 'fill-in-blank') {
+      isCorrect = question.correctAnswer.toLowerCase() === selectedAnswer.toLowerCase();
+    }
+
+    if (isCorrect) {
+      pointsEarned = question.points;
+    }
+
+    // Remove existing answer for this question if any
+    attempt.answers = attempt.answers.filter(
+      answer => answer.questionId.toString() !== questionId
     );
 
-    const isCorrect = question.answers.find(a => a._id.toString() === selectedAnswer)?.correct || false;
-
-    const answerData = {
+    // Add new answer
+    attempt.answers.push({
       questionId,
       selectedAnswer,
       isCorrect,
+      pointsEarned,
       timeSpent: timeSpent || 0
-    };
-
-    if (existingAnswerIndex >= 0) {
-      // Update existing answer
-      attempt.answers[existingAnswerIndex] = answerData;
-    } else {
-      // Add new answer
-      attempt.answers.push(answerData);
-    }
+    });
 
     await attempt.save();
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: {
-        answer: answerData,
-        isCorrect
+        isCorrect,
+        pointsEarned,
+        explanation: question.explanation
       }
     });
   } catch (error) {
-    console.error('Submit answer error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error submitting answer'
-    });
+    next(error);
   }
 };
 
 // @desc    Complete quiz attempt
 // @route   POST /api/quiz-attempts/:id/complete
 // @access  Private
-const completeQuizAttempt = async (req, res) => {
+const completeQuiz = async (req, res, next) => {
   try {
-    // Find the attempt
-    const attempt = await QuizAttempt.findById(req.params.id)
-      .populate('quiz', 'questions passPercentage');
-
+    const attempt = await QuizAttempt.findById(req.params.id);
     if (!attempt) {
       return res.status(404).json({
         success: false,
@@ -183,10 +153,10 @@ const completeQuizAttempt = async (req, res) => {
     }
 
     // Check if user owns this attempt
-    if (attempt.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
+    if (attempt.user.toString() !== req.user.id) {
+      return res.status(401).json({
         success: false,
-        message: 'Not authorized to modify this attempt'
+        message: 'Not authorized'
       });
     }
 
@@ -194,64 +164,66 @@ const completeQuizAttempt = async (req, res) => {
     if (attempt.status !== 'in_progress') {
       return res.status(400).json({
         success: false,
-        message: 'Quiz attempt is already completed'
+        message: 'Quiz attempt is not in progress'
       });
     }
 
-    // Calculate results
-    const totalQuestions = attempt.quiz.questions.length;
-    const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
-    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-    const passed = score >= (attempt.quiz.passPercentage || 70);
+    // Get quiz to check pass percentage
+    const quiz = await Quiz.findById(attempt.quiz);
+    
+    // Calculate total time spent
+    const totalTimeSpent = attempt.answers.reduce((total, answer) => total + answer.timeSpent, 0);
+    attempt.timeSpent = totalTimeSpent;
 
-    // Calculate time spent
-    const endTime = new Date();
-    const timeSpent = Math.round((endTime - attempt.startTime) / 1000); // in seconds
-
-    // Update attempt
+    // Check if passed
+    attempt.isPassed = attempt.percentage >= quiz.settings.passPercentage;
     attempt.status = 'completed';
-    attempt.endTime = endTime;
-    attempt.timeSpent = timeSpent;
-    attempt.score = correctAnswers;
-    attempt.percentage = score;
-    attempt.passed = passed;
+    attempt.endTime = new Date();
 
     await attempt.save();
 
-    // Populate user data for response
-    await attempt.populate('user', 'username firstName lastName');
+    // Update quiz stats
+    await updateQuizStats(quiz._id);
 
-    res.status(200).json({
+    // Update user stats
+    await updateUserStats(req.user.id);
+
+    res.json({
       success: true,
-      data: {
-        attempt,
-        results: {
-          totalQuestions,
-          correctAnswers,
-          score,
-          passed,
-          timeSpent,
-          passPercentage: attempt.quiz.passPercentage || 70
-        }
-      }
+      data: attempt
     });
   } catch (error) {
-    console.error('Complete quiz attempt error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error completing quiz attempt'
-    });
+    next(error);
   }
 };
 
-// @desc    Get quiz attempt details
+// @desc    Get my quiz attempts
+// @route   GET /api/quiz-attempts/my-attempts
+// @access  Private
+const getMyAttempts = async (req, res, next) => {
+  try {
+    const attempts = await QuizAttempt.find({ user: req.user.id })
+      .populate('quiz', 'title category')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get single quiz attempt
 // @route   GET /api/quiz-attempts/:id
 // @access  Private
-const getQuizAttempt = async (req, res) => {
+const getQuizAttempt = async (req, res, next) => {
   try {
     const attempt = await QuizAttempt.findById(req.params.id)
-      .populate('quiz', 'title description questions')
-      .populate('user', 'username firstName lastName');
+      .populate('quiz', 'title questions settings')
+      .populate('user', 'name');
 
     if (!attempt) {
       return res.status(404).json({
@@ -261,141 +233,112 @@ const getQuizAttempt = async (req, res) => {
     }
 
     // Check if user owns this attempt or is admin
-    if (attempt.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
+    if (attempt.user._id.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
         success: false,
-        message: 'Not authorized to view this attempt'
+        message: 'Not authorized'
       });
     }
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: attempt
     });
   } catch (error) {
-    console.error('Get quiz attempt error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving quiz attempt'
+    next(error);
+  }
+};
+
+// @desc    Get quiz results (for quiz creators)
+// @route   GET /api/quiz-attempts/quiz/:quizId/results
+// @access  Private
+const getQuizResults = async (req, res, next) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+
+    // Check if user is quiz creator or admin
+    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to view these results'
+      });
+    }
+
+    const attempts = await QuizAttempt.find({ quiz: req.params.quizId })
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper function to update quiz stats
+const updateQuizStats = async (quizId) => {
+  const stats = await QuizAttempt.aggregate([
+    { $match: { quiz: quizId, status: 'completed' } },
+    {
+      $group: {
+        _id: null,
+        totalAttempts: { $sum: 1 },
+        averageScore: { $avg: '$score' },
+        averageTime: { $avg: '$timeSpent' },
+        completionRate: { $avg: { $cond: ['$isPassed', 1, 0] } }
+      }
+    }
+  ]);
+
+  if (stats.length > 0) {
+    await Quiz.findByIdAndUpdate(quizId, {
+      'stats.totalAttempts': stats[0].totalAttempts,
+      'stats.averageScore': Math.round(stats[0].averageScore || 0),
+      'stats.averageTime': Math.round(stats[0].averageTime || 0),
+      'stats.completionRate': Math.round((stats[0].completionRate || 0) * 100)
     });
   }
 };
 
-// @desc    Get user's quiz attempts
-// @route   GET /api/quiz-attempts
-// @access  Private
-const getUserQuizAttempts = async (req, res) => {
-  try {
-    const { page = 1, limit = 10, quizId, status } = req.query;
-
-    const filter = { user: req.user._id };
-    
-    if (quizId) {
-      filter.quiz = quizId;
-    }
-    
-    if (status) {
-      filter.status = status;
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const attempts = await QuizAttempt.find(filter)
-      .populate('quiz', 'title category difficulty')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await QuizAttempt.countDocuments(filter);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        attempts,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(total / parseInt(limit)),
-          totalAttempts: total,
-          hasNext: skip + attempts.length < total,
-          hasPrev: parseInt(page) > 1
-        }
+// Helper function to update user stats
+const updateUserStats = async (userId) => {
+  const stats = await QuizAttempt.aggregate([
+    { $match: { user: userId, status: 'completed' } },
+    {
+      $group: {
+        _id: null,
+        quizzesTaken: { $sum: 1 },
+        totalScore: { $sum: '$score' },
+        averageScore: { $avg: '$score' }
       }
-    });
-  } catch (error) {
-    console.error('Get user quiz attempts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving quiz attempts'
-    });
-  }
-};
+    }
+  ]);
 
-// @desc    Get quiz attempt statistics
-// @route   GET /api/quiz-attempts/stats
-// @access  Private
-const getQuizAttemptStats = async (req, res) => {
-  try {
-    const { period = '30d' } = req.query;
-
-    // Calculate date range
-    const now = new Date();
-    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-    const stats = await QuizAttempt.aggregate([
-      {
-        $match: {
-          user: req.user._id,
-          createdAt: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalAttempts: { $sum: 1 },
-          completedAttempts: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-          },
-          averageScore: { $avg: '$percentage' },
-          averageTime: { $avg: '$timeSpent' },
-          passedAttempts: {
-            $sum: { $cond: ['$passed', 1, 0] }
-          }
-        }
-      }
-    ]);
-
-    const result = stats.length > 0 ? stats[0] : {
-      totalAttempts: 0,
-      completedAttempts: 0,
-      averageScore: 0,
-      averageTime: 0,
-      passedAttempts: 0
-    };
-
-    // Calculate pass rate
-    result.passRate = result.completedAttempts > 0 
-      ? Math.round((result.passedAttempts / result.completedAttempts) * 100) 
-      : 0;
-
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.error('Get quiz attempt stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving quiz attempt statistics'
+  if (stats.length > 0) {
+    await User.findByIdAndUpdate(userId, {
+      'stats.quizzesTaken': stats[0].quizzesTaken,
+      'stats.totalScore': stats[0].totalScore,
+      'stats.averageScore': Math.round(stats[0].averageScore || 0),
+      'stats.lastQuizDate': new Date()
     });
   }
 };
 
 module.exports = {
-  startQuizAttempt,
+  startQuiz,
   submitAnswer,
-  completeQuizAttempt,
+  completeQuiz,
+  getMyAttempts,
   getQuizAttempt,
-  getUserQuizAttempts,
-  getQuizAttemptStats
+  getQuizResults
 };

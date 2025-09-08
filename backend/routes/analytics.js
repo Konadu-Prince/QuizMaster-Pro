@@ -1,10 +1,32 @@
 const express = require('express');
-const { protect, requirePremium } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
+const {
+  trackActivity,
+  getUserActivitySummary,
+  getPlatformAnalytics,
+  getRealtimeAnalytics,
+  getBehaviorInsights
+} = require('../controllers/analyticsController');
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
 const User = require('../models/User');
 
 const router = express.Router();
+
+// Track user activity
+router.post('/track', protect, trackActivity);
+
+// Get user activity summary
+router.get('/user/:userId/summary', protect, getUserActivitySummary);
+
+// Get platform analytics (admin only)
+router.get('/platform', protect, authorize('admin'), getPlatformAnalytics);
+
+// Get real-time analytics (admin only)
+router.get('/realtime', protect, authorize('admin'), getRealtimeAnalytics);
+
+// Get behavior insights (admin only)
+router.get('/insights', protect, authorize('admin'), getBehaviorInsights);
 
 // @desc    Get user analytics dashboard
 // @route   GET /api/analytics/dashboard

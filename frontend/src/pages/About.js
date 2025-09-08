@@ -424,6 +424,67 @@ const About = () => {
           </div>
         </section>
 
+        {/* Developer Section */}
+        <section className="py-16 bg-white dark:bg-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+                Developed with ❤️ by
+              </h2>
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+                <div className="flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mr-4">
+                    <span className="text-2xl font-bold text-blue-600">C</span>
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-2xl font-bold">conadux</h3>
+                    <p className="text-blue-100">Full-Stack Developer & System Architect</p>
+                  </div>
+                </div>
+                <p className="text-lg text-blue-100 mb-6 max-w-3xl mx-auto">
+                  QuizMaster Pro was meticulously crafted by conadux, a passionate developer 
+                  dedicated to creating innovative educational technology solutions. With expertise 
+                  in modern web development, system architecture, and user experience design, 
+                  conadux brings together cutting-edge technology and intuitive design to deliver 
+                  exceptional learning experiences.
+                </p>
+                <div className="flex justify-center space-x-6">
+                  <a 
+                    href="https://github.com/conadux" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg px-4 py-2 transition-all"
+                  >
+                    <Github className="w-5 h-5" />
+                    <span>GitHub</span>
+                  </a>
+                  <a 
+                    href="https://linkedin.com/in/conadux" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg px-4 py-2 transition-all"
+                  >
+                    <Linkedin className="w-5 h-5" />
+                    <span>LinkedIn</span>
+                  </a>
+                  <a 
+                    href="mailto:hello@conadux.dev" 
+                    className="flex items-center space-x-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg px-4 py-2 transition-all"
+                  >
+                    <Mail className="w-5 h-5" />
+                    <span>Contact</span>
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         {/* Contact Info */}
         <section className="py-16 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

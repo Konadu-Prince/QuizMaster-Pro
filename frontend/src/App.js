@@ -7,6 +7,10 @@ import { HelmetProvider } from 'react-helmet-async';
 import { store } from './store/store';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { NavigationProvider } from './contexts/NavigationContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import AnalyticsWrapper from './components/analytics/AnalyticsWrapper';
+import { NotificationProvider } from './components/notifications/NotificationProvider';
 
 // Layout Components
 import Navbar from './components/layout/Navbar';
@@ -24,6 +28,9 @@ import QuizCreate from './pages/quiz/QuizCreate';
 import QuizTake from './pages/quiz/QuizTake';
 import QuizResults from './pages/quiz/QuizResults';
 import Profile from './pages/Profile';
+import MyQuizzes from './pages/MyQuizzes';
+import Settings from './pages/Settings';
+import Help from './pages/Help';
 import Leaderboard from './pages/Leaderboard';
 import Pricing from './pages/Pricing';
 import About from './pages/About';
@@ -39,7 +46,11 @@ function App() {
       <Provider store={store}>
         <AuthProvider>
           <ThemeProvider>
-            <Router>
+            <NotificationProvider>
+              <ErrorBoundary>
+                <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                  <AnalyticsWrapper>
+                    <NavigationProvider>
               <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
                 <Navbar />
                 
@@ -82,6 +93,17 @@ function App() {
                         <Profile />
                       </ProtectedRoute>
                     } />
+                    <Route path="/my-quizzes" element={
+                      <ProtectedRoute>
+                        <MyQuizzes />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/settings" element={
+                      <ProtectedRoute>
+                        <Settings />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/help" element={<Help />} />
                     
                     {/* 404 Route */}
                     <Route path="*" element={<NotFound />} />
@@ -116,7 +138,11 @@ function App() {
                   }}
                 />
               </div>
-            </Router>
+                    </NavigationProvider>
+                  </AnalyticsWrapper>
+                </Router>
+              </ErrorBoundary>
+            </NotificationProvider>
           </ThemeProvider>
         </AuthProvider>
       </Provider>
