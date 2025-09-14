@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
-const { generateToken, sendTokenResponse } = require('../utils/auth');
+const { sendTokenResponse } = require('../utils/auth');
 
 const router = express.Router();
 

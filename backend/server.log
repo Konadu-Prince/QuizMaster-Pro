@@ -1,0 +1,28 @@
+
+🚀 QuizMaster Pro Server is running!
+📍 Environment: development
+🌐 Port: 5002
+🔗 URL: http://localhost:5002
+📊 Health Check: http://localhost:5002/health
+  
+[0mGET /health [32m200[0m 1.577 ms - 129[0m
+Database connection error: MongooseServerSelectionError: connect ECONNREFUSED ::1:27017, connect ECONNREFUSED 127.0.0.1:27017
+    at _handleConnectionErrors (/workspace/backend/node_modules/mongoose/lib/connection.js:816:11)
+    at NativeConnection.openUri (/workspace/backend/node_modules/mongoose/lib/connection.js:791:11)
+    at async connectDB (/workspace/backend/config/database.js:5:18) {
+  reason: TopologyDescription {
+    type: 'Unknown',
+    servers: Map(1) { 'localhost:27017' => [ServerDescription] },
+    stale: false,
+    compatible: true,
+    heartbeatFrequencyMS: 10000,
+    localThresholdMS: 15,
+    setName: null,
+    maxElectionId: null,
+    maxSetVersion: null,
+    commonWireVersion: 0,
+    logicalSessionTimeoutMinutes: null
+  },
+  code: undefined
+}
+Running without database connection...

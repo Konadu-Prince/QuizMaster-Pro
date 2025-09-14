@@ -3,16 +3,12 @@ import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { 
   Users, 
-  Target, 
   Award, 
   BookOpen, 
-  TrendingUp, 
   Globe, 
-  Heart,
   Lightbulb,
   Shield,
   Zap,
-  Star,
   CheckCircle,
   ArrowRight,
   Mail,
@@ -20,8 +16,7 @@ import {
   MapPin,
   Linkedin,
   Twitter,
-  Github,
-  Facebook
+  Github
 } from 'lucide-react';
 
 const About = () => {

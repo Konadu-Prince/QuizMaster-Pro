@@ -1,5 +1,6 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 const { protect, requirePremium } = require('../middleware/auth');
 const User = require('../models/User');
 
@@ -10,6 +11,9 @@ const router = express.Router();
 // @access  Private
 router.post('/create-customer', protect, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const { email, name } = req.body;
 
     const customer = await stripe.customers.create({
@@ -43,6 +47,9 @@ router.post('/create-customer', protect, async (req, res) => {
 // @access  Private
 router.post('/create-subscription', protect, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const { priceId, customerId } = req.body;
 
     // Create subscription
@@ -75,6 +82,9 @@ router.post('/create-subscription', protect, async (req, res) => {
 // @access  Private
 router.post('/create-payment-intent', protect, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const { amount, currency = 'usd', description } = req.body;
 
     const paymentIntent = await stripe.paymentIntents.create({
@@ -107,6 +117,9 @@ router.post('/create-payment-intent', protect, async (req, res) => {
 // @access  Private
 router.get('/subscription', protect, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const user = await User.findById(req.user._id);
 
     if (!user.subscription.stripeSubscriptionId) {
@@ -144,6 +157,9 @@ router.get('/subscription', protect, async (req, res) => {
 // @access  Private
 router.post('/cancel-subscription', protect, requirePremium, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const user = await User.findById(req.user._id);
 
     if (!user.subscription.stripeSubscriptionId) {
@@ -179,6 +195,9 @@ router.post('/cancel-subscription', protect, requirePremium, async (req, res) =>
 // @access  Private
 router.post('/reactivate-subscription', protect, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const user = await User.findById(req.user._id);
 
     if (!user.subscription.stripeSubscriptionId) {
@@ -214,6 +233,9 @@ router.post('/reactivate-subscription', protect, async (req, res) => {
 // @access  Private
 router.get('/history', protect, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payments service not configured' });
+    }
     const { limit = 10, starting_after } = req.query;
 
     const charges = await stripe.charges.list({
@@ -243,6 +265,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   let event;
 
   try {
+    if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return res.status(503).send('Payments webhook not configured');
+    }
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);

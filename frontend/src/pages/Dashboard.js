@@ -8,8 +8,7 @@ import {
   TrendingUp,
   Plus,
   BarChart3,
-  Clock,
-  Star
+  Clock
 } from 'lucide-react';
 
 const Dashboard = () => {
