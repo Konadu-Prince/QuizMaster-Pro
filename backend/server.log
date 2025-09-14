@@ -1,0 +1,8 @@
+
+🚀 QuizMaster Pro Server is running!
+📍 Environment: development
+🌐 Port: 5002
+🔗 URL: http://localhost:5002
+📊 Health Check: http://localhost:5002/health
+  
+[0mGET /health [32m200[0m 1.577 ms - 129[0m

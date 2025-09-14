@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
     }
 
     // Check for token in cookies
-    if (!token && req.cookies.token) {
+    if (!token && req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
 
@@ -94,7 +94,7 @@ const optionalAuth = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
     }
 
-    if (!token && req.cookies.token) {
+    if (!token && req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
 
