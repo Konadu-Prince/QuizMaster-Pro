@@ -10,10 +10,7 @@ import {
   Star,
   ArrowRight,
   CheckCircle,
-  BarChart3,
-  Globe,
-  Smartphone,
-  Clock
+  BarChart3
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 

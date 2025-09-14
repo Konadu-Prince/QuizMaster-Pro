@@ -5,16 +5,120 @@ import {
   Trophy, 
   Medal, 
   Crown, 
-  Star, 
   TrendingUp, 
   Award,
   Users,
   Target,
-  Zap,
-  Calendar,
-  Filter,
+  Zap, 
   Search
 } from 'lucide-react';
+
+const mockLeaderboard = [
+  {
+    id: 1,
+    rank: 1,
+    name: 'Alex Chen',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2847,
+    quizzesCompleted: 45,
+    averageScore: 94.2,
+    streak: 12,
+    badges: ['Quiz Master', 'Speed Demon', 'Perfect Score'],
+    category: 'Programming',
+    lastActive: '2 hours ago'
+  },
+  {
+    id: 2,
+    rank: 2,
+    name: 'Sarah Johnson',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2756,
+    quizzesCompleted: 38,
+    averageScore: 92.8,
+    streak: 8,
+    badges: ['React Expert', 'Consistent Performer'],
+    category: 'React',
+    lastActive: '1 hour ago'
+  },
+  {
+    id: 3,
+    rank: 3,
+    name: 'Mike Rodriguez',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2634,
+    quizzesCompleted: 42,
+    averageScore: 91.5,
+    streak: 15,
+    badges: ['CSS Wizard', 'Design Guru'],
+    category: 'CSS',
+    lastActive: '30 minutes ago'
+  },
+  {
+    id: 4,
+    rank: 4,
+    name: 'Emily Davis',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2512,
+    quizzesCompleted: 35,
+    averageScore: 89.7,
+    streak: 6,
+    badges: ['Data Analyst', 'Python Pro'],
+    category: 'Data Science',
+    lastActive: '4 hours ago'
+  },
+  {
+    id: 5,
+    rank: 5,
+    name: 'David Kim',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2389,
+    quizzesCompleted: 33,
+    averageScore: 88.3,
+    streak: 9,
+    badges: ['Full Stack', 'Node.js Expert'],
+    category: 'Web Development',
+    lastActive: '6 hours ago'
+  },
+  {
+    id: 6,
+    rank: 6,
+    name: 'Lisa Wang',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2256,
+    quizzesCompleted: 29,
+    averageScore: 87.1,
+    streak: 4,
+    badges: ['UI/UX Designer', 'Creative Thinker'],
+    category: 'Design',
+    lastActive: '1 day ago'
+  },
+  {
+    id: 7,
+    rank: 7,
+    name: 'James Wilson',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2143,
+    quizzesCompleted: 31,
+    averageScore: 85.9,
+    streak: 7,
+    badges: ['JavaScript Ninja'],
+    category: 'JavaScript',
+    lastActive: '2 days ago'
+  },
+  {
+    id: 8,
+    rank: 8,
+    name: 'Maria Garcia',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
+    score: 2034,
+    quizzesCompleted: 27,
+    averageScore: 84.2,
+    streak: 3,
+    badges: ['Rising Star'],
+    category: 'Programming',
+    lastActive: '3 days ago'
+  }
+];
 
 const Leaderboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('all-time');
@@ -41,112 +145,7 @@ const Leaderboard = () => {
     { value: 'design', label: 'Design' }
   ];
 
-  const mockLeaderboard = [
-    {
-      id: 1,
-      rank: 1,
-      name: 'Alex Chen',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2847,
-      quizzesCompleted: 45,
-      averageScore: 94.2,
-      streak: 12,
-      badges: ['Quiz Master', 'Speed Demon', 'Perfect Score'],
-      category: 'Programming',
-      lastActive: '2 hours ago'
-    },
-    {
-      id: 2,
-      rank: 2,
-      name: 'Sarah Johnson',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2756,
-      quizzesCompleted: 38,
-      averageScore: 92.8,
-      streak: 8,
-      badges: ['React Expert', 'Consistent Performer'],
-      category: 'React',
-      lastActive: '1 hour ago'
-    },
-    {
-      id: 3,
-      rank: 3,
-      name: 'Mike Rodriguez',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2634,
-      quizzesCompleted: 42,
-      averageScore: 91.5,
-      streak: 15,
-      badges: ['CSS Wizard', 'Design Guru'],
-      category: 'CSS',
-      lastActive: '30 minutes ago'
-    },
-    {
-      id: 4,
-      rank: 4,
-      name: 'Emily Davis',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2512,
-      quizzesCompleted: 35,
-      averageScore: 89.7,
-      streak: 6,
-      badges: ['Data Analyst', 'Python Pro'],
-      category: 'Data Science',
-      lastActive: '4 hours ago'
-    },
-    {
-      id: 5,
-      rank: 5,
-      name: 'David Kim',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2389,
-      quizzesCompleted: 33,
-      averageScore: 88.3,
-      streak: 9,
-      badges: ['Full Stack', 'Node.js Expert'],
-      category: 'Web Development',
-      lastActive: '6 hours ago'
-    },
-    {
-      id: 6,
-      rank: 6,
-      name: 'Lisa Wang',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2256,
-      quizzesCompleted: 29,
-      averageScore: 87.1,
-      streak: 4,
-      badges: ['UI/UX Designer', 'Creative Thinker'],
-      category: 'Design',
-      lastActive: '1 day ago'
-    },
-    {
-      id: 7,
-      rank: 7,
-      name: 'James Wilson',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2143,
-      quizzesCompleted: 31,
-      averageScore: 85.9,
-      streak: 7,
-      badges: ['JavaScript Ninja'],
-      category: 'JavaScript',
-      lastActive: '2 days ago'
-    },
-    {
-      id: 8,
-      rank: 8,
-      name: 'Maria Garcia',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-      score: 2034,
-      quizzesCompleted: 27,
-      averageScore: 84.2,
-      streak: 3,
-      badges: ['Rising Star'],
-      category: 'Programming',
-      lastActive: '3 days ago'
-    }
-  ];
+  // mockLeaderboard defined at module scope
 
   useEffect(() => {
     // Simulate loading

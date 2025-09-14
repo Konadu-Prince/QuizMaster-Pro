@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { BookOpen, Users, Clock, Star, Play } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 
 const QuizDetail = () => {
   return (

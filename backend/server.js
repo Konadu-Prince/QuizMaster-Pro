@@ -123,6 +123,7 @@ app.use('/api/analytics', analyticsRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
   app.use(express.static('public'));
   
   app.get('*', (req, res) => {
@@ -147,7 +148,7 @@ const server = app.listen(PORT, () => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
+process.on('unhandledRejection', (err, _promise) => {
   console.log(`Error: ${err.message}`);
   // Close server & exit process
   server.close(() => {
